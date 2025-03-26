@@ -18,6 +18,9 @@
       <excludeFolder url="file://$MODULE_DIR$/maps_app/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/maps_app/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/maps_app/build" />
+      <excludeFolder url="file://$MODULE_DIR$/layout_project/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/layout_project/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/layout_project/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
