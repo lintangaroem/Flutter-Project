@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_dash: ^1.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -58,11 +59,13 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/nurse.jpeg
+    - assets/images/kemenkes.png
     - assets/icons/vaccine.jpeg
     - assets/icons/registration_vaccine.jpeg
     - assets/icons/vaccine_covid.jpeg
     - assets/icons/test_covid.jpeg
     - assets/icons/registration_covid.jpeg
+    - assets/icons/suntik.jpeg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
