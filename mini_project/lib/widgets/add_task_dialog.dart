@@ -3,13 +3,13 @@ import 'package:mini_project/models/task.dart';
 import 'package:intl/intl.dart';
 
 class AddTaskDialog extends StatefulWidget {
-  final Function(Task, DateTime) onTaskAdded;
+  // final Function(Task, DateTime) onTaskAdded;
   final DateTime initialDate;
   final TimeOfDay initialTime;
 
   const AddTaskDialog({
     super.key,
-    required this.onTaskAdded,
+    // required this.onTaskAdded,
     required this.initialDate,
     this.initialTime = const TimeOfDay(hour: 9, minute: 0),
   });
@@ -29,7 +29,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     super.initState();
     titleController = TextEditingController();
     descriptionController = TextEditingController();
-    selectedDate = DateTime.now();
+    selectedDate = widget.initialDate;
     selectedTime = widget.initialTime;
   }
 
@@ -177,15 +177,13 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       return;
                     }
 
-                    widget.onTaskAdded(Task(
+                    final newTask = Task(
                       date: DateFormat('yyyy-MM-dd').format(selectedDate),
                       time: '${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}',
                       title: titleController.text,
                       description: descriptionController.text,
-                    ),
-                    selectedDate,
                     );
-                    Navigator.pop(context);
+                    Navigator.pop(context, newTask);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0D009D),
@@ -193,6 +191,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
+
                   child: const Text(
                     'Save',
                     style: TextStyle(

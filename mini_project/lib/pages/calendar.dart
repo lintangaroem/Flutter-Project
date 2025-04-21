@@ -1,32 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
+import 'package:mini_project/database/task_database.dart';
 import 'package:mini_project/widgets/add_task_dialog.dart';
+import 'package:mini_project/widgets/edit_task_dialog.dart';
 import 'package:mini_project/widgets/bottom_navbar.dart';
 import 'package:mini_project/pages/home.dart';
 import 'package:mini_project/models/task.dart';
 import 'package:mini_project/pages/notes.dart';
 import 'package:intl/intl.dart';
 
-class CalendarPage extends StatefulWidget {
+class CalendarPage extends StatefulWidget{
   const CalendarPage({super.key});
-
-  @override
   State<CalendarPage> createState() => _CalendarPageState();
 }
 
-class _CalendarPageState extends State<CalendarPage> {
-  List<DateTime?> _selectedDates = [DateTime.now()]; // Default to today
-  final Map<DateTime, List<Task>> _tasksByDate = {};
+class _CalendarPageState extends State<CalendarPage>{
+  List<DateTime?> _selectedDates = [DateTime.now()];
+  List<Task> _tasks = [];
   int _currentNavIndex = 1;
+  bool isLoading = false;
 
-  @override
-  Widget build(BuildContext context) {
+  void initState(){
+    super.initState();
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    setState(() => isLoading = true);
+
+    try {
+      final loadedTasks = await TaskDatabase.instance.getTasksByDate(_selectedDates.first!);
+
+      loadedTasks.sort((a, b) {
+        // Assuming time is in the format "HH:mm"
+        final timeA = DateFormat("HH:mm").parse(a.time); // Modify according to your time format
+        final timeB = DateFormat("HH:mm").parse(b.time); // Modify according to your time format
+        return timeA.compareTo(timeB); // Sorting in ascending order
+      });
+
+      setState(() => _tasks = loadedTasks);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading notes: ${e.toString()}')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Widget build(BuildContext context){
     final selectedDate = _selectedDates.first!;
-    final tasksForSelectedDate = _getTasksForDate(selectedDate);
     final isToday = _isSameDay(selectedDate, DateTime.now());
 
     return Scaffold(
-      backgroundColor: Color(0xFFF3F6FF),
+      backgroundColor: const Color(0xFFF3F6FF),
       appBar: AppBar(
         backgroundColor: Colors.white,
         automaticallyImplyLeading: false,
@@ -43,28 +70,28 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
       body: Column(
         children: [
-          // Calendar Widget
+          //calendar tampil
           _buildCalendar(),
 
-          // Task Header with Date
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               children: [
                 Text(
                   'My Task',
-                  style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins',
-                      color: Color(0xFF0D009D)),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                    color: Color(0xFF0D009D)
+                  ),
                 ),
                 const Spacer(),
                 ElevatedButton(
                   onPressed: () => _showAddTaskDialog(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0D009D),
-                    shape: CircleBorder(),
+                    shape: const CircleBorder(),
                     padding: const EdgeInsets.all(8),
                   ),
                   child: const Icon(Icons.add, color: Colors.white, size: 20),
@@ -73,118 +100,108 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
           ),
 
-          // Task List for Selected Date
           Expanded(
-              child: tasksForSelectedDate.isEmpty
-                  ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.task, size: 48, color: Colors.grey[400]),
-                    SizedBox(height: 16),
-                    Text(
-                      'Today\'s Task',
-                      style: TextStyle(color: Colors.grey[600]),
+            child: _tasks.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.task, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          isToday ? 'No tasks for today' : 'No tasks for ${DateFormat('MMM dd, yyyy').format(selectedDate)}',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
-                    SizedBox(height: 8),
-                  ],
-                ),
-              )
-                  : ListView.builder(
-                itemCount: tasksForSelectedDate.length,
-                itemBuilder: (context, index) {
-                  return _buildTaskItem(tasksForSelectedDate[index], selectedDate);
-                },
-              )
+            )
+                : ListView.builder(
+                itemCount: _tasks.length,
+              itemBuilder: (context, index) {
+                  return _buildTaskItem(_tasks[index]);
+              },
+            )
           ),
         ],
       ),
       bottomNavigationBar: BottomNavbar(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavItemTapped,
+          currentIndex: _currentNavIndex, 
+          onTap: _onNavItemTapped,
       ),
     );
   }
-
-  Widget _buildCalendar() {
+  
+  Widget _buildCalendar(){
     return Card(
       margin: const EdgeInsets.all(16),
       color: Colors.white,
       child: CalendarDatePicker2(
-        config: CalendarDatePicker2Config(
-          calendarType: CalendarDatePicker2Type.single,
-          selectedDayHighlightColor: Color(0xFF0D009D),
-          firstDate: DateTime.now().subtract(Duration(days: 365)),
-          lastDate: DateTime.now().add(Duration(days: 365)),
-        ),
-        value: _selectedDates,
-        onValueChanged: (dates) => setState(() => _selectedDates = dates),
-      ),
-    );
-  }
-
-  Widget _buildTaskItem(Task task, DateTime date) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      color: Colors.white,
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Color(0xFFF3F6FF),
-            borderRadius: BorderRadius.circular(8),
+          config: CalendarDatePicker2Config(
+            calendarType: CalendarDatePicker2Type.single,
+            selectedDayHighlightColor: const Color(0xFF0D009D),
+            firstDate: DateTime.now().subtract(const Duration(days: 365)),
+            lastDate: DateTime.now().add(const Duration(days: 365)),
           ),
-          child: Text(
-            task.time,
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0D009D)),
-          ),
-        ),
-        title: Text(task.title, style: TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(task.description ?? ''),
-        trailing: IconButton(
-          icon: Icon(Icons.delete, color: Colors.red),
-          onPressed: () => _removeTask(task, date),
-        ),
-      ),
-    );
-  }
-
-  void _showAddTaskDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AddTaskDialog(
-        initialDate: _selectedDates.first!,
-        onTaskAdded: (newTask, taskDate) {
-          setState(() {
-            final dateKey = DateTime(taskDate.year, taskDate.month, taskDate.day);
-            _tasksByDate[dateKey] ??= [];
-            _tasksByDate[dateKey]!.add(newTask);
-            _sortTasksByTime(dateKey);
-          });
+          value: _selectedDates,
+        onValueChanged: (dates) async{
+            setState(() {
+              _selectedDates = dates;
+            });
+            await _loadTasks();
         },
       ),
     );
   }
 
-  List<Task> _getTasksForDate(DateTime date) {
-    final dateKey = DateTime(date.year, date.month, date.day);
-    return _tasksByDate[dateKey] ?? [];
+  Widget _buildTaskItem(Task task) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      color: Colors.white,
+      child: ListTile(
+        onTap: () => _showEditTaskDialog(context, task),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F6FF),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            task.time,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0D009D)),
+          ),
+        ),
+        title: Text(task.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(task.description ?? ''),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete, color: Colors.red),
+          onPressed: () => _removeTask(task),
+        ),
+      ),
+    );
   }
 
-  void _removeTask(Task task, DateTime date) {
-    setState(() {
-      final dateKey = DateTime(date.year, date.month, date.day);
-      _tasksByDate[dateKey]?.remove(task);
-      if (_tasksByDate[dateKey]?.isEmpty ?? false) {
-        _tasksByDate.remove(dateKey);
-      }
-    });
+  Future<void> _showAddTaskDialog(BuildContext context) async {
+    final task = await showDialog<Task>(
+      context: context,
+      builder: (context) => AddTaskDialog(
+        initialDate: _selectedDates.first!,
+      ),
+    );
+
+    if (task != null) {
+      await TaskDatabase.instance.create(task);
+      await _loadTasks();
+    }
   }
 
-  void _sortTasksByTime(DateTime date) {
-    _tasksByDate[date]?.sort((a, b) => a.time.compareTo(b.time));
+  Future<void> _removeTask(Task task) async {
+    if (task.id != null) {
+      await TaskDatabase.instance.deleteTask(task.id!);
+      await _loadTasks();
+    }
   }
 
   bool _isSameDay(DateTime date1, DateTime date2) {
@@ -203,11 +220,25 @@ class _CalendarPageState extends State<CalendarPage> {
         context,
         MaterialPageRoute(builder: (context) => HomePage()),
       );
-    }else if(index == 2){
+    } else if (index == 2) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => NotePage()),
       );
+    }
+  }
+
+  Future<void> _showEditTaskDialog(BuildContext context, Task task) async {
+    final editedTask = await showDialog<Task>(
+      context: context,
+      builder: (context) => EditTaskDialog(
+        initialTask: task,
+      ),
+    );
+
+    if (editedTask != null) {
+      await TaskDatabase.instance.updateTask(editedTask);
+      await _loadTasks();
     }
   }
 }

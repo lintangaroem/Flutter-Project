@@ -3,6 +3,9 @@ import 'package:mini_project/models/note.dart';
 import 'package:mini_project/database/note_database.dart';
 
 class AddNotePage extends StatefulWidget {
+  final Note? note;
+
+  const AddNotePage({super.key, this.note});
   @override
   _AddNotePageState createState() => _AddNotePageState();
 }
@@ -43,13 +46,14 @@ class _AddNotePageState extends State<AddNotePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Note'),
+        title: Text('Note'),
+        titleTextStyle: TextStyle(fontFamily: 'Poppins', color: Color(0xFF0D009D), fontWeight: FontWeight.bold, fontSize: 18),
+        centerTitle: true,
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: ElevatedButton.icon(
               onPressed: _saveNote,
-              icon: Icon(Icons.save, size: 20),
               label: Text('Save'),
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white,
